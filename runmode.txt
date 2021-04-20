@@ -1,0 +1,57 @@
+2
+1
+5
+0
+2
+40
+1
+
+Use this file to set the mode of operation for the program.
+The first line of this file should be a number corresponding to one of the
+maps listed below. The second line should contain either 0 or 1. Use
+1 to include blockaded squares as cleared.
+
+Legal options for line 1:
+1) Tutorial
+2) Flesh
+3) Tronne
+4) Candyland
+Anything else) Manual entry of parameters.
+
+Legal options for line 2:
+0) Only use open squares.
+1) Include valid, but currently blockaded squares
+
+Legal options for line 3:
+1) Use only square beacons.
+2) Use square and knight beacons.
+3) Use square, knight and arrow beacons.
+
+Legal options for line 4:
+0) Calculate for speed.
+1) Calculate for production.
+2) Calculate for efficiency.
+
+Line 5:
+0) Force squares.
+1) Force knights.
+2) Force arrows.
+
+Line 6:
+X) Force X (0-999) amount of Line 5's type.
+
+Line 7:
+0) Print the Legend.
+1) Suppress the Legend.
+
+I prefer launching the program from a command prompt, though you can set up
+a batch file or Windows shortcut if you prefer. If you do, I recommend
+setting the command line arguments to redirect the output to a text file. If
+you don't, the entire thing will barf out onto the little dos window. I
+launch the file as such (your directories will probably be different):
+
+c:\dev\ngu-indust\Alchemy.exe > Output.txt
+
+Just make sure Alchemy.exe, runmode.txt and the <map>.txt files
+are all in the same directory.
+
