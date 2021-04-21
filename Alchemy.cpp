@@ -25,6 +25,8 @@ bool PrintLegend = true;
 int wlb[12];
 int dtx[16];
 int dty[16];
+int mapbasevalue;
+int mapfinalvalue;
 
 int main(int argc, char* argv[])
 {
@@ -39,6 +41,8 @@ int main(int argc, char* argv[])
     z = 0;
     forcetype = -1;
     forcecount = 0;
+    mapbasevalue = 0;
+    mapfinalvalue = 0;
 
     if (!LoadOperatingMode (&maps, &options, &beacons, &beacontype) )
     {
@@ -263,7 +267,7 @@ int  CalculateBestBeacons (int options, int beacons, int beacontype)
                 }
                 case 2:
                 {
-                    if (options = 1)
+                    if (options == 1)
                     {
                         workmap[x][y] = 0;
                     }
@@ -552,6 +556,47 @@ int  CalculateBestBeacons (int options, int beacons, int beacontype)
             forcecount--;
         }
     }
+    mapbasevalue = 0;
+    mapfinalvalue = 0;
+
+    for (x = 0; x < MAX_ROW; x++)
+    {
+        for (y = 0; y < MAX_COL; y++)
+        {
+            currval = 100; /* current square is worth 100 base before adding beacon modifiers */
+
+            if (workmap[x][y] >= 0)
+            {
+                mapbasevalue += currval;
+            }
+
+            if (workmap[x][y] == 0) /* 0=empty square, usable and without a beacon on it. */
+            {
+                sqhitby = sqavail = knhitby = knavail = arlhitby = arlavail = 0;
+                arrhitby = arravail = aruhitby = aruavail = ardhitby = ardavail = 0;
+                hwlhitby = hwlavail = vwlhitby = vwlavail = dthitby = dtavail = 0;
+
+                CalcSqValues (&sqhitby, &sqavail, x, y);
+                CalcKnValues (&knhitby, &knavail, x, y);
+                CalcArValues (&arrhitby, &arravail, &arlhitby, &arlavail,
+                              &ardhitby, &ardavail, &aruhitby, &aruavail, x, y);
+                CalcWlValues (&hwlhitby, &hwlavail, &vwlhitby, &vwlavail, x, y);
+                CalcDtValues (&dthitby, &dtavail, x, y);
+
+                currval += sqhitby * beaconval[beacontype][0 /*squares*/];
+                currval += knhitby * beaconval[beacontype][1 /*knights*/];
+                currval += arrhitby * beaconval[beacontype][2 /*arrows*/];
+                currval += arlhitby * beaconval[beacontype][2 /*arrows*/];
+                currval += ardhitby * beaconval[beacontype][2 /*arrows*/];
+                currval += aruhitby * beaconval[beacontype][2 /*arrows*/];
+                currval += hwlhitby * beaconval[beacontype][0 /*walls*/];
+                currval += vwlhitby * beaconval[beacontype][0 /*walls*/];
+                currval += dthitby * beaconval[beacontype][4 /*donuts*/];
+
+                mapfinalvalue += currval;
+            }
+        }
+    }
     return 0;
 }
 
@@ -731,6 +776,7 @@ int  DisplayResults (int maps, int options, int beacons, int beacontype)
         }
         cout << "\n";
     }
+    cout << "Empty map value: " << mapbasevalue << "  Populated map value: " << mapfinalvalue << "\n";
 
     return 0;
 }
@@ -915,3 +961,6 @@ void CalcDtValues (int *dthitby, int *dtavail, int x, int y)
         }
     }
 }
+
+
+
