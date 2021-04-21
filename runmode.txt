@@ -1,4 +1,4 @@
-2
+1
 1
 5
 0
@@ -12,30 +12,21 @@ maps listed below. The second line should contain either 0 or 1. Use
 1 to include blockaded squares as cleared.
 
 Legal options for line 1:
-1) Tutorial
-2) Flesh
-3) Tronne
-4) Candyland
-Anything else) Manual entry of parameters.
+1) Tutorial   2) Flesh   3) Tronne   4) Candyland
+(Anything else results in manual entry of parameters.)
 
 Legal options for line 2:
 0) Only use open squares.
-1) Include valid, but currently blockaded squares
+1) Include valid, but currently blockaded squares.
 
-Legal options for line 3:
-1) Use only square beacons.
-2) Use square and knight beacons.
-3) Use square, knight and arrow beacons.
+Legal options for line 3 (highest beacon type allowed):
+1) box    2) knight   3) arrow   4) wall   5) donut
 
-Legal options for line 4:
-0) Calculate for speed.
-1) Calculate for production.
-2) Calculate for efficiency.
+Legal options for line 4 (beacon type):
+0) speed    1) production    2) efficiency
 
-Line 5:
-0) Force squares.
-1) Force knights.
-2) Force arrows.
+Line 5 (which type to force):
+0) box    1) knight   2) arrow   3) wall   4) donut
 
 Line 6:
 X) Force X (0-999) amount of Line 5's type.
