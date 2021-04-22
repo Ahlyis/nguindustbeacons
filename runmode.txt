@@ -1,10 +1,13 @@
-1
-1
-5
-0
-2
-40
-1
+1-map_number
+1-include_blockaded_squares
+2-max_beacon_shape
+0-beacon_type
+2-shape_to_force
+40-amount_to_force
+1-no_legend
+0-random_seed(0=true_random)
+10000-number_of_attempts
+0-debugging?(1=true)
 
 Use this file to set the mode of operation for the program.
 The first line of this file should be a number corresponding to one of the
@@ -19,8 +22,8 @@ Legal options for line 2:
 0) Only use open squares.
 1) Include valid, but currently blockaded squares.
 
-Legal options for line 3 (highest beacon type allowed):
-1) box    2) knight   3) arrow   4) wall   5) donut
+Legal options for line 3 (highest beacon shape allowed):
+0) box    1) knight   2) arrow   3) wall   4) donut
 
 Legal options for line 4 (beacon type):
 0) speed    1) production    2) efficiency
