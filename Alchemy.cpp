@@ -7,6 +7,7 @@
 #include <fstream>
 #include <iostream>
 #include <time.h>
+#include <windows.h>
 #include "Accessories.h"
 
 using namespace std;
@@ -14,6 +15,7 @@ using namespace std;
 int basemap[MAX_ROW][MAX_COL];
 int bestmap[MAX_ROW][MAX_COL];
 int workmap[MAX_ROW][MAX_COL];
+int baseworkmap[MAX_ROW][MAX_COL];
 int sqx[8];
 int sqy[8];
 int knx[8];
@@ -34,6 +36,8 @@ int searchorder[MAX_ROW * MAX_COL];
 int iTries;
 int iBestVal;
 bool bDebug = false;
+HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+int beaconcolor = 15;
 
 int main(int argc, char* argv[])
 {
@@ -103,8 +107,15 @@ int main(int argc, char* argv[])
             forcecount = 0;
         }
     }
-    SetWhichToCheck (maps);
+    SetWhichToCheck (maps, options);
     InitBeacons ();
+    beaconcolor = 9;
+
+    if (beacontype == 1)
+        beaconcolor = 5;
+    else if (beacontype == 2)
+        beaconcolor = 14;
+
 
     for (i = 0; i < iTries; i++)
     {
@@ -237,7 +248,7 @@ int MakeNumber (char *sData)
 }
 
 /* This originally was just to load the map. It now includes other setup functionality as well. */
-void SetWhichToCheck (int maps)
+void SetWhichToCheck (int maps, int options)
 {
     char sData[360] = {0},
          sFile[80];
@@ -290,6 +301,38 @@ void SetWhichToCheck (int maps)
         searchorder[x] = x;
     }
 
+    for (x = 0; x < MAX_ROW; x++)
+    {
+        for (y = 0; y < MAX_COL; y++)
+        {
+            switch (basemap[x][y])
+            {
+                case 1:
+                {
+                    baseworkmap[x][y] = 0;
+                    break;
+                }
+                case 2:
+                {
+                    if (options == 1)
+                    {
+                        baseworkmap[x][y] = 0;
+                    }
+                    else
+                    {
+                        baseworkmap[x][y] = -1;
+                    }
+                    break;
+                }
+                default:
+                {
+                    baseworkmap[x][y] = -1;
+                    break;
+                }
+            }
+        }
+    } // initialize base working map,
+
     return;
 }
 
@@ -300,41 +343,12 @@ int  CalculateBestBeacons (int options, int beacons, int beacontype)
     int arrhitby, arravail, aruhitby, aruavail, ardhitby, ardavail;
     int hwlhitby, hwlavail, vwlhitby, vwlavail, dthitby, dtavail;
 
-    int tempval;
+    int tempval, currforcecount;
     bool done = false;
-    Shuffle (); /* randomizes the searchorder. */
 
-    for (x = 0; x < MAX_ROW; x++)
-    {
-        for (y = 0; y < MAX_COL; y++)
-        {
-            switch (basemap[x][y])
-            {
-                case 1:
-                {
-                    workmap[x][y] = 0;
-                    break;
-                }
-                case 2:
-                {
-                    if (options == 1)
-                    {
-                        workmap[x][y] = 0;
-                    }
-                    else
-                    {
-                        workmap[x][y] = -1;
-                    }
-                    break;
-                }
-                default:
-                {
-                    workmap[x][y] = -1;
-                    break;
-                }
-            }
-        }
-    } // initialize working map,
+    Shuffle (); /* randomizes the searchorder. */
+    memcpy (workmap, baseworkmap, iTotalArea * sizeof (int) );
+    currforcecount = forcecount;
 
     while (!done)
     {
@@ -383,210 +397,197 @@ int  CalculateBestBeacons (int options, int beacons, int beacontype)
                 currval -= arlhitby * beaconval[beacontype][2 /*arrows*/];
                 currval -= ardhitby * beaconval[beacontype][2 /*arrows*/];
                 currval -= aruhitby * beaconval[beacontype][2 /*arrows*/];
-                currval -= hwlhitby * beaconval[beacontype][0 /*walls*/];
-                currval -= vwlhitby * beaconval[beacontype][0 /*walls*/];
+                currval -= hwlhitby * beaconval[beacontype][3 /*walls*/];
+                currval -= vwlhitby * beaconval[beacontype][3 /*walls*/];
                 currval -= dthitby * beaconval[beacontype][4 /*donuts*/];
 
-                tempval = currval + sqavail * beaconval[beacontype][0 /*squares*/];
-
-                if (    (forcecount > 0)
-                     && (forcetype != 0)
+                if (    (currforcecount <= 0)
+                     || (forcetype == 0)
                    )
                 {
-                    tempval = 0;
+                    tempval = currval + sqavail * beaconval[beacontype][0 /*squares*/];
+
+                    if (    (    (tempval > 100)
+                              || (    (tempval > 40)
+                                   && (beacontype == 2)
+                                 )
+                            )
+                         && (tempval > workval)
+                       )
+                    {
+                        workx = x;
+                        worky = y;
+                        workval = tempval;
+                        workbeacon = 1; /*squares*/
+                    }
                 }
 
-                if (    (    (tempval > 100)
-                          || (    (tempval > 40)
-                               && (beacontype == 2)
-                             )
-                        )
-                     && (tempval > workval)
+                if (    (currforcecount <= 0)
+                     || (forcetype == 1)
                    )
                 {
-                    workx = x;
-                    worky = y;
-                    workval = tempval;
-                    workbeacon = 1; /*squares*/
+                    tempval = currval + knavail * beaconval[beacontype][1 /*knights*/];
+
+                    if (    (    (tempval > 100)
+                              || (    (tempval > 40)
+                                   && (beacontype == 2)
+                                 )
+                            )
+                         && (tempval > workval)
+                       )
+                    {
+                        workx = x;
+                        worky = y;
+                        workval = tempval;
+                        workbeacon = 2; /*knights*/
+                    }
                 }
 
-                tempval = currval + knavail * beaconval[beacontype][1 /*knights*/];
-
-                if (    (forcecount > 0)
-                     && (forcetype != 1)
+                if (    (currforcecount <= 0)
+                     || (forcetype == 2)
                    )
                 {
-                    tempval = 0;
+                    tempval = currval + arravail * beaconval[beacontype][2 /*arrows*/];
+
+                    if (    (    (tempval > 100)
+                              || (    (tempval > 40)
+                                   && (beacontype == 2)
+                                 )
+                            )
+                         && (tempval > workval)
+                       )
+                    {
+                        workx = x;
+                        worky = y;
+                        workval = tempval;
+                        workbeacon = 3; /*arrow right*/
+                    }
                 }
 
-                if (    (    (tempval > 100)
-                          || (    (tempval > 40)
-                               && (beacontype == 2)
-                             )
-                        )
-                     && (tempval > workval)
+                if (    (currforcecount <= 0)
+                     || (forcetype == 2)
                    )
                 {
-                    workx = x;
-                    worky = y;
-                    workval = tempval;
-                    workbeacon = 2; /*knights*/
+                    tempval = currval + arlavail * beaconval[beacontype][2 /*arrows*/];
+
+                    if (    (    (tempval > 100)
+                              || (    (tempval > 40)
+                                   && (beacontype == 2)
+                                 )
+                            )
+                         && (tempval > workval)
+                       )
+                    {
+                        workx = x;
+                        worky = y;
+                        workval = tempval;
+                        workbeacon = 4; /*arrow left*/
+                    }
                 }
 
-                tempval = currval + arravail * beaconval[beacontype][2 /*arrows*/];
-
-                if (    (forcecount > 0)
-                     && (forcetype != 2)
+                if (    (currforcecount <= 0)
+                     || (forcetype == 2)
                    )
                 {
-                    tempval = 0;
+                    tempval = currval + ardavail * beaconval[beacontype][2 /*arrows*/];
+
+                    if (    (    (tempval > 100)
+                              || (    (tempval > 40)
+                                   && (beacontype == 2)
+                                 )
+                            )
+                         && (tempval > workval)
+                       )
+                    {
+                        workx = x;
+                        worky = y;
+                        workval = tempval;
+                        workbeacon = 5; /*arrow down*/
+                    }
                 }
 
-                if (    (    (tempval > 100)
-                          || (    (tempval > 40)
-                               && (beacontype == 2)
-                             )
-                        )
-                     && (tempval > workval)
+                if (    (currforcecount <= 0)
+                     || (forcetype == 2)
                    )
                 {
-                    workx = x;
-                    worky = y;
-                    workval = tempval;
-                    workbeacon = 3; /*arrow right*/
+                    tempval = currval + aruavail * beaconval[beacontype][2 /*arrows*/];
+
+                    if (    (    (tempval > 100)
+                              || (    (tempval > 40)
+                                   && (beacontype == 2)
+                                 )
+                            )
+                         && (tempval > workval)
+                       )
+                    {
+                        workx = x;
+                        worky = y;
+                        workval = tempval;
+                        workbeacon = 6; /*arrow up*/
+                    }
                 }
 
-                tempval = currval + arlavail * beaconval[beacontype][2 /*arrows*/];
-
-                if (    (forcecount > 0)
-                     && (forcetype != 2)
+                if (    (currforcecount <= 0)
+                     || (forcetype == 3)
                    )
                 {
-                    tempval = 0;
+                    tempval = currval + hwlavail * beaconval[beacontype][3 /*walls*/];
+
+                    if (    (    (tempval > 100)
+                              || (    (tempval > 40)
+                                   && (beacontype == 2)
+                                 )
+                            )
+                         && (tempval > workval)
+                       )
+                    {
+                        workx = x;
+                        worky = y;
+                        workval = tempval;
+                        workbeacon = 7; /*horizontal wall*/
+                    }
                 }
 
-                if (    (    (tempval > 100)
-                          || (    (tempval > 40)
-                               && (beacontype == 2)
-                             )
-                        )
-                     && (tempval > workval)
+                if (    (currforcecount <= 0)
+                     || (forcetype == 3)
                    )
                 {
-                    workx = x;
-                    worky = y;
-                    workval = tempval;
-                    workbeacon = 4; /*arrow left*/
-                }
-                tempval = currval + ardavail * beaconval[beacontype][2 /*arrows*/];
+                    tempval = currval + vwlavail * beaconval[beacontype][3 /*walls*/];
 
-                if (    (forcecount > 0)
-                     && (forcetype != 2)
-                   )
-                {
-                    tempval = 0;
-                }
-
-                if (    (    (tempval > 100)
-                          || (    (tempval > 40)
-                               && (beacontype == 2)
-                             )
-                        )
-                     && (tempval > workval)
-                   )
-                {
-                    workx = x;
-                    worky = y;
-                    workval = tempval;
-                    workbeacon = 5; /*arrow down*/
-                }
-                tempval = currval + aruavail * beaconval[beacontype][2 /*arrows*/];
-
-                if (    (forcecount > 0)
-                     && (forcetype != 2)
-                   )
-                {
-                    tempval = 0;
+                    if (    (    (tempval > 100)
+                              || (    (tempval > 40)
+                                   && (beacontype == 2)
+                                 )
+                            )
+                         && (tempval > workval)
+                       )
+                    {
+                        workx = x;
+                        worky = y;
+                        workval = tempval;
+                        workbeacon = 8; /*vertical wall*/
+                    }
                 }
 
-                if (    (    (tempval > 100)
-                          || (    (tempval > 40)
-                               && (beacontype == 2)
-                             )
-                        )
-                     && (tempval > workval)
+                if (    (currforcecount <= 0)
+                     || (forcetype == 4)
                    )
                 {
-                    workx = x;
-                    worky = y;
-                    workval = tempval;
-                    workbeacon = 6; /*arrow up*/
-                }
-                tempval = currval + hwlavail * beaconval[beacontype][3 /*walls*/];
+                    tempval = currval + dtavail * beaconval[beacontype][4 /*donuts*/];
 
-                if (    (forcecount > 0)
-                     && (forcetype != 3)
-                   )
-                {
-                    tempval = 0;
-                }
-
-                if (    (    (tempval > 100)
-                          || (    (tempval > 40)
-                               && (beacontype == 2)
-                             )
-                        )
-                     && (tempval > workval)
-                   )
-                {
-                    workx = x;
-                    worky = y;
-                    workval = tempval;
-                    workbeacon = 7; /*horizontal wall*/
-                }
-                tempval = currval + vwlavail * beaconval[beacontype][3 /*walls*/];
-
-                if (    (forcecount > 0)
-                     && (forcetype != 3)
-                   )
-                {
-                    tempval = 0;
-                }
-
-                if (    (    (tempval > 100)
-                          || (    (tempval > 40)
-                               && (beacontype == 2)
-                             )
-                        )
-                     && (tempval > workval)
-                   )
-                {
-                    workx = x;
-                    worky = y;
-                    workval = tempval;
-                    workbeacon = 8; /*vertical wall*/
-                }
-                tempval = currval + dtavail * beaconval[beacontype][4 /*donuts*/];
-
-                if (    (forcecount > 0)
-                     && (forcetype != 4)
-                   )
-                {
-                    tempval = 0;
-                }
-
-                if (    (    (tempval > 100)
-                          || (    (tempval > 40)
-                               && (beacontype == 2)
-                             )
-                        )
-                     && (tempval > workval)
-                   )
-                {
-                    workx = x;
-                    worky = y;
-                    workval = tempval;
-                    workbeacon = 9; /*donut*/
+                    if (    (    (tempval > 100)
+                              || (    (tempval > 40)
+                                   && (beacontype == 2)
+                                 )
+                            )
+                         && (tempval > workval)
+                       )
+                    {
+                        workx = x;
+                        worky = y;
+                        workval = tempval;
+                        workbeacon = 9; /*donut*/
+                    }
                 }
             }
         }
@@ -602,7 +603,7 @@ int  CalculateBestBeacons (int options, int beacons, int beacontype)
                 printf ("ERROR! Bad logic!!!\n");
             }
             workmap[workx][worky] = workbeacon;
-            forcecount--;
+            currforcecount--;
         }
     }
     mapbasevalue = 0;
@@ -663,6 +664,7 @@ int  CalculateBestBeacons (int options, int beacons, int beacontype)
 int  DisplayResults (int maps, int options, int beacons, int beacontype)
 {
     int x, y;
+    SetConsoleTextAttribute(hConsole, 15);
 
     cout << "Calculated beacon placement for map: ";
 
@@ -670,21 +672,25 @@ int  DisplayResults (int maps, int options, int beacons, int beacontype)
     {
         case 1:
         {
+            SetConsoleTextAttribute(hConsole, 1);
             cout << "Tutorial\n";
             break;
         }
         case 2:
         {
+            SetConsoleTextAttribute(hConsole, 12);
             cout << "Flesh\n";
             break;
         }
         case 3:
         {
+            SetConsoleTextAttribute(hConsole, 3);
             cout << "Tronne\n";
             break;
         }
         case 4:
         {
+            SetConsoleTextAttribute(hConsole, 13);
             cout << "Candyland\n";
             break;
         }
@@ -694,6 +700,7 @@ int  DisplayResults (int maps, int options, int beacons, int beacontype)
             break;
         }
     }
+    SetConsoleTextAttribute(hConsole, 15);
 
     if (options == 1)
     {
@@ -731,21 +738,25 @@ int  DisplayResults (int maps, int options, int beacons, int beacontype)
         cout << "... ERROR. Using beacon " << beacons << " is not supported!\n";
     }
 
+    cout << "Using ";
     switch (beacontype)
     {
         case 0:
         {
-            cout << "Using speed (blue) beacons.\n\n";
+            SetConsoleTextAttribute(hConsole, 9);
+            cout << "speed";
             break;
         }
         case 1:
         {
-            cout << "Using production (pink) beacons.\n\n";
+            SetConsoleTextAttribute(hConsole, 5);
+            cout << "production";
             break;
         }
         case 2:
         {
-            cout << "Using efficiency (yellow) beacons.\n\n";
+            SetConsoleTextAttribute(hConsole, 14);
+            cout << "efficiency";
             break;
         }
         default:
@@ -754,6 +765,8 @@ int  DisplayResults (int maps, int options, int beacons, int beacontype)
             break;
         }
     }
+    SetConsoleTextAttribute(hConsole, 15);
+    cout << " beacons.\n";
 
     if (PrintLegend)
     {
@@ -774,56 +787,75 @@ int  DisplayResults (int maps, int options, int beacons, int beacontype)
             {
                 case -1:
                 {
+                    if (maps == 1)
+                        SetConsoleTextAttribute(hConsole, 24);
+                    else if (maps == 2)
+                        SetConsoleTextAttribute(hConsole, 197);
+                    else if (maps == 3)
+                        SetConsoleTextAttribute(hConsole, 48);
+                    else if (maps == 4)
+                        SetConsoleTextAttribute(hConsole, 222);
+
                     cout << "~";
                     break;
                 }
                 case 0:
                 {
+                    SetConsoleTextAttribute(hConsole, 15);
                     cout << ".";
                     break;
                 }
                 case 1:
                 {
+                    SetConsoleTextAttribute(hConsole, beaconcolor);
                     cout << "#";
                     break;
                 }
                 case 2:
                 {
+                    SetConsoleTextAttribute(hConsole, beaconcolor);
                     cout << "K";
                     break;
                 }
                 case 3:
                 {
+                    SetConsoleTextAttribute(hConsole, beaconcolor);
                     cout << ">";
                     break;
                 }
                 case 4:
                 {
+                    SetConsoleTextAttribute(hConsole, beaconcolor);
                     cout << "<";
                     break;
                 }
                 case 5:
                 {
+                    SetConsoleTextAttribute(hConsole, beaconcolor);
                     cout << "v";
                     break;
                 }
                 case 6:
                 {
+                    SetConsoleTextAttribute(hConsole, beaconcolor);
                     cout << "^";
                     break;
                 }
                 case 7:
                 {
+                    SetConsoleTextAttribute(hConsole, beaconcolor);
                     cout << "-";
                     break;
                 }
                 case 8:
                 {
+                    SetConsoleTextAttribute(hConsole, beaconcolor);
                     cout << "|";
                     break;
                 }
                 case 9:
                 {
+                    SetConsoleTextAttribute(hConsole, beaconcolor);
                     cout << "O";
                     break;
                 }
@@ -834,8 +866,10 @@ int  DisplayResults (int maps, int options, int beacons, int beacontype)
                 }
             }
         }
-        cout << "\n";
+        SetConsoleTextAttribute(hConsole, 15);
+        cout << " \n";
     }
+    SetConsoleTextAttribute(hConsole, 15);
     cout << "Empty map value: " << mapbasevalue << "  Populated map value: " << mapfinalvalue << "\n";
 
     return 0;
