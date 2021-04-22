@@ -13,7 +13,7 @@
 #define MAX_WALL 12
 #define MAX_DONUT 16
 
-void SetWhichToCheck (int maps);
+void SetWhichToCheck (int maps, int options);
 int  MakeNumber (char *sData);
 bool LoadOperatingMode (int *maps, int *options, int *beacons, int *beacontype);
 int  CalculateBestBeacons (int options, int beacons, int beacontype);
