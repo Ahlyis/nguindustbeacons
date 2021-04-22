@@ -1,18 +1,18 @@
-1-map_number
-1-include_blockaded_squares
+3-map_number
+0-include_blockaded_squares(1=true)
 2-max_beacon_shape
-0-beacon_type
+1-beacon_type
 2-shape_to_force
-40-amount_to_force
+15-amount_to_force_min
+40-amount_to_force_max
 1-no_legend
 0-random_seed(0=true_random)
-10000-number_of_attempts
+100000-number_of_attempts
 0-debugging?(1=true)
 
 Use this file to set the mode of operation for the program.
-The first line of this file should be a number corresponding to one of the
-maps listed below. The second line should contain either 0 or 1. Use
-1 to include blockaded squares as cleared.
+Each line at the top should start with a number and not contain any blank spaces.
+The program will strip the number off each line.
 
 Legal options for line 1:
 1) Tutorial   2) Flesh   3) Tronne   4) Candyland
@@ -31,12 +31,20 @@ Legal options for line 4 (beacon type):
 Line 5 (which type to force):
 0) box    1) knight   2) arrow   3) wall   4) donut
 
-Line 6:
+Line 6 (minimum) and 7 (maximum):
 X) Force X (0-999) amount of Line 5's type.
 
-Line 7:
+Line 8:
 0) Print the Legend.
 1) Suppress the Legend.
+
+Set line 9 to 0 for the randomizer to be seeded from the clock. Set a value to specify the seed.
+
+Line 10:
+X) Run through X attempts, then show the best found.
+
+Line 11: Just leave this at 0. I use this when debugging new features/changes,
+ so what it does is always changing.
 
 I prefer launching the program from a command prompt, though you can set up
 a batch file or Windows shortcut if you prefer. If you do, I recommend
