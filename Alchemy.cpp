@@ -24,7 +24,8 @@ int arx[71];
 int ary[71];
 int beaconval[3][5];
 int forcetype;
-int forcecount;
+int forcecountmin;
+int forcecountmax;
 bool PrintLegend = true;
 int wlb[12];
 int dtx[16];
@@ -48,7 +49,7 @@ int main(int argc, char* argv[])
         beacontype = 0;
 
     forcetype = -1;
-    forcecount = 0;
+    forcecountmin = forcecountmax = 0;
     mapbasevalue = 0;
     mapfinalvalue = 0;
     iBestVal = 0;
@@ -100,12 +101,13 @@ int main(int argc, char* argv[])
         }
 
         printf ("Force how many of that type? (0 - 999)\n");
-        cin >> forcecount;
+        cin >> forcecountmin;
 
-        if ( (forcecount < 1) || (forcecount > 999) )
+        if ( (forcecountmin < 1) || (forcecountmin > 999) )
         {
-            forcecount = 0;
+            forcecountmin = 0;
         }
+        forcecountmax = forcecountmin; /* variable force count range only via input file. */
     }
     SetWhichToCheck (maps, options);
     InitBeacons ();
@@ -179,10 +181,17 @@ bool LoadOperatingMode (int *maps, int *options, int *beacons, int *beacontype)
 
         Data >> sData;
 
-        forcecount = MakeNumber (sData);
+        forcecountmin = MakeNumber (sData);
 
-        if ( (forcecount < 1) || (forcecount > 999) )
-            forcecount = 0;
+        if ( (forcecountmin < 1) || (forcecountmin > 999) )
+            forcecountmin = 0;
+
+        Data >> sData;
+
+        forcecountmax = MakeNumber (sData);
+
+        if ( (forcecountmax < forcecountmin) || (forcecountmax > 999) )
+            forcecountmax = forcecountmin;
 
         Data >> sData;
 
@@ -212,6 +221,8 @@ bool LoadOperatingMode (int *maps, int *options, int *beacons, int *beacontype)
         if (iTries < 1)
             iTries = 1;
 
+        cout << "We will be running " << iTries << " attempts this run.\n";
+
        bRetVal = true;
     }
 
@@ -235,7 +246,7 @@ int MakeNumber (char *sData)
         iRetVal *= 10;
         x++;
 
-        if (iRetVal > 100000)
+        if (iRetVal > 1000000000)
         {
             sData[0] = 0;
             x = 0;
@@ -348,7 +359,13 @@ int  CalculateBestBeacons (int options, int beacons, int beacontype)
 
     Shuffle (); /* randomizes the searchorder. */
     memcpy (workmap, baseworkmap, iTotalArea * sizeof (int) );
-    currforcecount = forcecount;
+
+    currforcecount = 0;
+
+    if (forcecountmax > 0)
+    {
+        currforcecount = forcecountmin + rand() % (forcecountmax - forcecountmin + 1);
+    }
 
     while (!done)
     {
