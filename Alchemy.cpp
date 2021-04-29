@@ -656,8 +656,8 @@ int  CalculateBestBeacons (int options, int beacons, int beacontype)
                 currval += arlhitby * beaconval[beacontype][2 /*arrows*/];
                 currval += ardhitby * beaconval[beacontype][2 /*arrows*/];
                 currval += aruhitby * beaconval[beacontype][2 /*arrows*/];
-                currval += hwlhitby * beaconval[beacontype][0 /*walls*/];
-                currval += vwlhitby * beaconval[beacontype][0 /*walls*/];
+                currval += hwlhitby * beaconval[beacontype][3 /*walls*/];
+                currval += vwlhitby * beaconval[beacontype][3 /*walls*/];
                 currval += dthitby * beaconval[beacontype][4 /*donuts*/];
 
                 mapfinalvalue += currval;
