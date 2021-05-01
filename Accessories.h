@@ -13,6 +13,17 @@
 #define MAX_WALL 12
 #define MAX_DONUT 16
 
+typedef struct bestmaps
+{
+    int mapnum;
+    int beacontype;
+    int maxbeacon;
+    int score;
+    int mapID;
+    int map[MAX_ROW][MAX_COL];
+    bestmaps *next;
+} bestmaps;
+
 void SetWhichToCheck (int maps, int options);
 int  MakeNumber (char *sData);
 bool LoadOperatingMode (int *maps, int *options, int *beacons, int *beacontype);
@@ -27,3 +38,11 @@ void CalcWlValues (int *hwlhitby, int *hwlavail, int *vwlhitby, int *vwlavail, i
 void CalcDtValues (int *dthitby, int *dtavail, int x, int y);
 void Shuffle ();
 void CopyMap (int sourcemap[MAX_ROW][MAX_COL], int destmap[MAX_ROW][MAX_COL]);
+int  CalculateMixedBeacons (int options, int beacons, int beacontype);
+bool DebugTestGrounds ();
+void LoadBestMaps ();
+void SaveBestMaps ();
+int BeaconDisp2Num (char c);
+char BeaconNum2Disp (int i);
+void Cleanup ();
+bool NewBestMap (int map, int beacontype, int beacons);
