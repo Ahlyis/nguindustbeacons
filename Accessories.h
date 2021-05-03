@@ -26,7 +26,7 @@ typedef struct bestmaps
 
 void SetWhichToCheck (int maps, int options);
 int  MakeNumber (char *sData);
-bool LoadOperatingMode (int *maps, int *options, int *beacons, int *beacontype);
+void LoadOperatingMode (int *maps, int *options, int *beacons, int *beacontype);
 int  CalculateBestBeacons (int options, int beacons, int beacontype);
 int  DisplayResults (int maps, int options, int beacons, int beacontype);
 void InitBeacons ();
@@ -39,10 +39,13 @@ void CalcDtValues (int *dthitby, int *dtavail, int x, int y);
 void Shuffle ();
 void CopyMap (int sourcemap[MAX_ROW][MAX_COL], int destmap[MAX_ROW][MAX_COL]);
 int  CalculateMixedBeacons (int options, int beacons, int beacontype);
-bool DebugTestGrounds ();
+bool DebugTestGrounds (bool *bTest);
 void LoadBestMaps ();
 void SaveBestMaps ();
 int BeaconDisp2Num (char c);
 char BeaconNum2Disp (int i);
 void Cleanup ();
 bool NewBestMap (int map, int beacontype, int beacons);
+void RandomizeParameters (int *map, int *beacons, int *beacontype);
+void DisplayMaps (int maps, int beacons, int beacontype);
+

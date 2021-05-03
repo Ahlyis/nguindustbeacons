@@ -1,50 +1,75 @@
-3-map_number
-0-include_blockaded_squares(1=true)
-2-max_beacon_shape
+1-map_number
+1-include_blocked_squares(1=true)
 1-beacon_type
-2-shape_to_force
-15-amount_to_force_min
-40-amount_to_force_max
+0-max_beacon_shape
+0-shape_to_force
+0-amount_to_force_min
+25-amount_to_force_max
 1-no_legend
 0-random_seed(0=true_random)
-100000-number_of_attempts
-0-debugging?(1=true)
+10-number_of_attempts
+0-run_mode
 
 Use this file to set the mode of operation for the program.
 Each line at the top should start with a number and not contain any blank spaces.
 The program will strip the number off each line.
 
-Legal options for line 1:
+Line 1:
 1) Tutorial   2) Flesh   3) Tronne   4) Candyland
 (Anything else results in manual entry of parameters.)
 
-Legal options for line 2:
-0) Only use open squares.
-1) Include valid, but currently blockaded squares.
+Line 2:
+0) Only use open squares. (value of 1 in the <map>.txt file)
+1) Include valid, but currently blockaded squares. (value 1 or 2 in <map>.txt)
 
-Legal options for line 3 (highest beacon shape allowed):
-0) box    1) knight   2) arrow   3) wall   4) donut
-
-Legal options for line 4 (beacon type):
+Line 3 (beacon type):
 0) speed    1) production    2) efficiency
 
-Line 5 (which type to force):
+Line 4 (highest beacon shape allowed):
 0) box    1) knight   2) arrow   3) wall   4) donut
 
-Line 6 (minimum) and 7 (maximum):
-X) Force X (0-999) amount of Line 5's type.
+Line 5 (which shape to force):
+0) box    1) knight   2) arrow   3) wall   4) donut
+
+Lines 6 (minimum) and 7 (maximum):
+X) Force at least X (0-999) amount of Line 5's shape.
 
 Line 8:
 0) Print the Legend.
 1) Suppress the Legend.
 
-Set line 9 to 0 for the randomizer to be seeded from the clock. Set a value to specify the seed.
+Line 9 (randomizer seed):
+X) Set to 0 to be seeded from the clock. Set a value to specify the seed.
 
 Line 10:
 X) Run through X attempts, then show the best found.
 
-Line 11: Just leave this at 0. I use this when debugging new features/changes,
- so what it does is always changing.
+Line 11:
+0) Run one set of maps according to the parameters specified in lines 1-10.
+1) Run infinite sets of maps with randomized parameters after the first set.
+   Map, beacon shape and type, force shape, force min and force max will be
+   randomized. Parameters from lines 2, 8 and 9 will be kept. Entry from
+   line 10 will be used to determine the size of each new set. Program will
+   need to be killed at some point as it will never stop on its own. I use
+   Ctrl_C on the cmd prompt to kill it. The purpose is just to continuously
+   look for improved maps and update bestmaps.txt any time one is found.
+2) Same as above, except map, beacon shape and beacon type will cycle through
+   all possible values instead of being randomized, starting from what is
+   specified on lines 1, 3 and 4.
+3) Same as above, but force shape and counts will also be cycled. I strongly
+   recommend setting line 10 to a small number when using this option. Note
+   that this mode only displays a map if it is a new best. Instead, it spews
+   out a running status update of exactly what it is checking next.
+4) Display one map from bestmaps.txt according to data on lines 1, 3 and 4.
+5) Same as 4, but display maps for all valid line 1 values.
+6) Same as 4, but display maps for all valid line 3 values.
+7) Same as 4, but display maps for all valid line 4 values.
+8) Same as 4, but display maps for all valid line 1 and 3 values.
+9) Same as 4, but display maps for all valid line 1 and 4 values.
+10) Same as 4, but display maps for all valid line 3 and 4 values.
+11) Display all maps from bestmaps.txt.
+99) Debug mode. I use this when debugging new features/changes, so what it
+    does is always changing.
 
 I prefer launching the program from a command prompt, though you can set up
 a batch file or Windows shortcut if you prefer. If you do, I recommend
