@@ -42,6 +42,7 @@ HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 int beaconcolor = 15;
 bestmaps *maplist = 0;
 int iTotalMaps = 0;
+int iRunMode;
 
 void WriteOneMap (ofstream& Data, int mapnum, int beacontype, int score, int map[MAX_ROW][MAX_COL], int beacons);
 
@@ -52,6 +53,7 @@ int main(int argc, char* argv[])
         options = 0,
         beacons = 0,
         beacontype = 0;
+    bool bInfinite = false;
 
     forcetype = -1;
     forcecountmin = forcecountmax = 0;
@@ -59,115 +61,102 @@ int main(int argc, char* argv[])
     mapfinalvalue = 0;
     iBestVal = 0;
 
-    if (!LoadOperatingMode (&maps, &options, &beacons, &beacontype) )
-    {
-        iTries = 1;
-        /* Initialize random seed. */
-        srand ( time(NULL) );
-
-        printf ("Which map? 1=Tutorial, 2=Flesh, 3=Tronne, 4=Candyland\n");
-        cin >> maps;
-
-        if ( (maps < 2) || (maps > MAX_MAPS) )
-        {
-            maps = 1;
-        }
-
-        printf ("Include currently blockaded? 1=yes\n");
-        cin >> options;
-
-        if (options != 1)
-        {
-            options = 0;
-        }
-
-        printf ("Up to which beacons? 0=box only, 1=knight, 2=arrow, 3=wall, 4=donut\n");
-        cin >> beacons;
-
-        if ( (beacons < 1) || (beacons > 4) )
-        {
-            beacons = 0;
-        }
-
-        printf ("Which beacon type? 0=speed, 1=production, 2=efficiency, 3=prod/eff mix\n");
-        cin >> beacontype;
-
-        if ( (beacontype < 1) || (beacontype > 3) )
-        {
-            beacontype = 0;
-        }
-
-        printf ("Force X amount of which beacon type? 0=square, 1=knight, 2=arrow, 3=wall, 4=donut\n");
-        cin >> forcetype;
-
-        if ( (forcetype < 1) || (forcetype > 4) )
-        {
-            forcetype = 0;
-        }
-
-        printf ("Force how many of that type? (0 - 999)\n");
-        cin >> forcecountmin;
-
-        if ( (forcecountmin < 1) || (forcecountmin > 999) )
-        {
-            forcecountmin = 0;
-        }
-        forcecountmax = forcecountmin; /* variable force count range only via input file. */
-    }
+    LoadOperatingMode (&maps, &options, &beacons, &beacontype);
 
     if (bDebug)
     {
-        if (!DebugTestGrounds () )
+        iRunMode = 1;
+        if (!DebugTestGrounds (&bInfinite) )
         {
             return 0;
         }
     }
-    SetWhichToCheck (maps, options);
     InitBeacons ();
-    beaconcolor = 11;
 
-    if (beacontype == 1)
-        beaconcolor = 5;
-    else if (beacontype == 2)
-        beaconcolor = 14;
-
-
-    for (i = 0; i < iTries; i++)
+    if (    (iRunMode == 0)
+         || (iRunMode == 1)
+         || (iRunMode == 2)
+         || (iRunMode == 3)
+       )
     {
-        if (bDebug)
+        if (iRunMode == 0)
         {
-            cout << "Try #" << i + 1;
-        }
-
-        if (beacontype != 3)
-        {
-            CalculateBestBeacons (options, beacons, beacontype);
+            bInfinite = false;
         }
         else
         {
-            CalculateMixedBeacons (options, beacons, beacontype);
+            bInfinite = true;
         }
+
+        do
+        {
+            SetWhichToCheck (maps, options);
+            beaconcolor = 11;
+
+            if (beacontype == 1)
+                beaconcolor = 5;
+            else if (beacontype == 2)
+                beaconcolor = 14;
+
+            for (i = 0; i < iTries; i++)
+            {
+                if (beacontype != 3)
+                {
+                    CalculateBestBeacons (options, beacons, beacontype);
+                }
+                else
+                {
+                    CalculateMixedBeacons (options, beacons, beacontype);
+                }
+            }
+
+            CopyMap (bestmap, workmap);
+            mapfinalvalue = iBestVal;
+
+            if (iRunMode != 3)
+            {
+                DisplayResults (maps, options, beacons, beacontype);
+            }
+
+            if (NewBestMap (maps, beacontype, beacons) )
+            {
+                SaveBestMaps ();
+
+                if (iRunMode == 3)
+                {
+                    DisplayResults (maps, options, beacons, beacontype);
+                }
+            }
+
+            Cleanup ();
+
+            if (bInfinite)
+            {
+                RandomizeParameters (&maps, &beacons, &beacontype);
+            }
+        } while (bInfinite); /* Program will never stop on its own when infinite. This is intended. */
     }
-
-    CopyMap (bestmap, workmap);
-    mapfinalvalue = iBestVal;
-    DisplayResults (maps, options, beacons, beacontype);
-
-    if (NewBestMap (maps, beacontype, beacons) )
+    if (    (iRunMode == 4)
+         || (iRunMode == 5)
+         || (iRunMode == 6)
+         || (iRunMode == 7)
+         || (iRunMode == 8)
+         || (iRunMode == 9)
+         || (iRunMode == 10)
+         || (iRunMode == 11)
+       )
     {
-        SaveBestMaps ();
+        DisplayMaps (maps, beacons, beacontype);
     }
-
-    Cleanup ();
 
     return 0;
 }
 
-bool LoadOperatingMode (int *maps, int *options, int *beacons, int *beacontype)
+void LoadOperatingMode (int *maps, int *options, int *beacons, int *beacontype)
 {
     char sData[360] = {0},
          sFile[80];
-    bool bRetVal = false;
+    bool bFromFile = false;
     unsigned int iSeed = 0;
 
     sprintf (sFile, ".\\runmode.txt");
@@ -179,87 +168,187 @@ bool LoadOperatingMode (int *maps, int *options, int *beacons, int *beacontype)
 
     if ( (*maps > 0) && (*maps <= MAX_MAPS) )
     {
+        bFromFile = true;
+    }
+
+    if (bFromFile)
+    {
         Data >> sData;
 
         *options = MakeNumber (sData);
+    }
+    else
+    {
+        printf ("Which map? 1=Tutorial, 2=Flesh, 3=Tronne, 4=Candyland\n");
+        cin >> *maps;
 
-        if (*options != 1)
-            *options = 0;
+        if ( (*maps < 2) || (*maps > MAX_MAPS) )
+        {
+            *maps = 1;
+        }
 
-        Data >> sData;
+        printf ("Include currently blockaded? 1=yes\n");
+        cin >> *options;
+    }
 
-        *beacons = MakeNumber (sData);
+    if (*options != 1)
+        *options = 0;
 
-        if ( (*beacons < 1) || (*beacons > 4) )
-            *beacons = 0;
-
+    if (bFromFile)
+    {
         Data >> sData;
 
         *beacontype = MakeNumber (sData);
+    }
+    else
+    {
+        printf ("Which beacon type? 0=speed, 1=production, 2=efficiency, 3=prod/eff mix\n");
+        cin >> *beacontype;
+    }
 
-        if ( (*beacontype < 1) || (*beacontype > 3) )
-            *beacontype = 0;
+    if ( (*beacontype < 1) || (*beacontype > 3) )
+        *beacontype = 0;
 
+    if (bFromFile)
+    {
+        Data >> sData;
+
+        *beacons = MakeNumber (sData);
+    }
+    else
+    {
+        printf ("Up to which beacons? 0=box only, 1=knight, 2=arrow, 3=wall, 4=donut\n");
+        cin >> *beacons;
+    }
+
+    if ( (*beacons < 1) || (*beacons > 4) )
+        *beacons = 0;
+
+    if (bFromFile)
+    {
         Data >> sData;
 
         forcetype = MakeNumber (sData);
+    }
+    else
+    {
+        printf ("Force X amount of which beacon type? 0=square, 1=knight, 2=arrow, 3=wall, 4=donut\n");
+        cin >> forcetype;
+    }
 
-        if ( (forcetype < 1) || (forcetype > 4) )
-            forcetype = 0;
+    if ( (forcetype < 1) || (forcetype > 4) )
+        forcetype = 0;
 
+    if (bFromFile)
+    {
         Data >> sData;
 
         forcecountmin = MakeNumber (sData);
+    }
+    else
+    {
+        printf ("Force at least how many of that type? (0 - 999)\n");
+        cin >> forcecountmin;
+    }
 
-        if ( (forcecountmin < 1) || (forcecountmin > 999) )
-            forcecountmin = 0;
+    if ( (forcecountmin < 1) || (forcecountmin > 999) )
+        forcecountmin = 0;
 
+    if (bFromFile)
+    {
         Data >> sData;
 
         forcecountmax = MakeNumber (sData);
+    }
+    else
+    {
+        printf ("Force at most how many of that type? (0 - 999)\n");
+        cin >> forcecountmax;
+    }
 
-        if ( (forcecountmax < forcecountmin) || (forcecountmax > 999) )
-            forcecountmax = forcecountmin;
+    if ( (forcecountmax < forcecountmin) || (forcecountmax > 999) )
+        forcecountmax = forcecountmin;
 
+    PrintLegend = true;
+
+    if (bFromFile)
+    {
         Data >> sData;
 
         if (MakeNumber (sData) == 1)
             PrintLegend = false;
-        else
-            PrintLegend = true;
+    }
+    else
+    {
+        printf ("Display the legend? (y/n)\n");
+        cin >> sData;
 
+        if ( (sData[0] != 'y') && (sData[0] != 'Y') )
+            PrintLegend = false;
+    }
+
+    if (bFromFile)
+    {
         Data >> sData;
 
         iSeed = MakeNumber (sData);
+    }
+    else
+    {
+        printf ("Use what random seed? (enter 0 for truly random)\n");
+        cin >> iSeed;
+    }
 
-        if (iSeed > 0)
-        {
-            srand (iSeed);
-        }
-        else
-        {
-            /* Initialize random seed. */
-            srand (time (NULL) );
-        }
+    if (iSeed > 0)
+    {
+        srand (iSeed);
+    }
+    else
+    {
+        /* Initialize random seed. */
+        srand (time (NULL) );
+    }
 
+    if (bFromFile)
+    {
         Data >> sData;
 
         iTries = MakeNumber (sData);
-
-        if (iTries < 1)
-            iTries = 1;
-
-        cout << "We will be running " << iTries << " attempts this run.\n";
-
-       bRetVal = true;
+    }
+    else
+    {
+        printf ("Loop how many times?\n");
+        cin >> iTries;
     }
 
+    if (iTries < 1)
+        iTries = 1;
+
+    bDebug = false;
+    iRunMode = 0;
+
+    if (bFromFile)
+    {
         Data >> sData;
+        iRunMode = MakeNumber (sData);
+    }
+    else
+    {
+        printf ("What runmode? (Enter 0 or review runmode.txt for other valid values.\n");
+        cin >> iRunMode;
+    }
 
-        if (MakeNumber (sData) == 1)
-            bDebug = true;
+    if (iRunMode == 99)
+    {
+        bDebug = true;
+    }
 
-    return bRetVal;
+    if ( (iRunMode < 1) || (iRunMode > 11) )
+    {
+        iRunMode = 0; /* Will be updated elsewhere for debug mode. Don't change here. */
+    }
+
+    return;
 }
 
 int  CalculateBestBeacons (int options, int beacons, int beacontype)
@@ -580,11 +669,6 @@ int  CalculateBestBeacons (int options, int beacons, int beacontype)
         }
     }
 
-    if (bDebug)
-    {
-        cout << "  MapValue: " << mapfinalvalue << "\n";
-    }
-
     if (mapfinalvalue > iBestVal)
     {
         iBestVal = mapfinalvalue;
@@ -598,17 +682,7 @@ int  DisplayResults (int maps, int options, int beacons, int beacontype)
     int x, y;
     SetConsoleTextAttribute(hConsole, 15);
 
-    if (bDebug)
-    {
-        for (x = 0; x < 16; x++)
-        {
-            SetConsoleTextAttribute(hConsole, x);
-            cout << "This is just a test.\n";
-        }
-        SetConsoleTextAttribute(hConsole, 15);
-    }
-
-    cout << "Calculated beacon placement for map: ";
+    cout << "--------------------------------------------------------\nCalculated beacon placement for map: ";
 
     switch (maps)
     {
@@ -812,7 +886,12 @@ int  DisplayResults (int maps, int options, int beacons, int beacontype)
         cout << " \n";
     }
     SetConsoleTextAttribute(hConsole, 15);
-    cout << "Empty map value: " << mapbasevalue << "  Populated map value: " << mapfinalvalue << "\n";
+
+    if ( (iRunMode < 4) || (iRunMode > 11) )
+    {
+        cout << "Empty map value: " << mapbasevalue << "  ";
+    }
+    cout << "Populated map value: " << mapfinalvalue << "\n";
 
     return 0;
 }
@@ -1345,11 +1424,6 @@ int  CalculateMixedBeacons (int options, int beacons, int beacontype)
         }
     }
 
-    if (bDebug)
-    {
-        cout << "  MapValue: " << mapfinalvalue << "\n";
-    }
-
     if (mapfinalvalue > iBestVal)
     {
         iBestVal = mapfinalvalue;
@@ -1358,46 +1432,19 @@ int  CalculateMixedBeacons (int options, int beacons, int beacontype)
     return 0;
 }
 
-void DebugCreateNew ()
-{
-    char sData[360] = {0},
-         sFile[80];
-    int iTest = 0;
 
-    sprintf (sFile, "debugtest.txt");
-
-    ofstream Data(sFile);
-
-    Data << "Here is the new version of the file" << endl;
-    Data << "This should be the second line." << endl << "1" << endl;
-    return;
-}
-
-bool DebugTestGrounds ()
+bool DebugTestGrounds (bool *bTest)
 {
     bool bRetVal = true;
 
-    char sData[360] = {0},
-         sFile[80];
-    int iTest = 0;
+    *bTest = true;
 
-    sprintf (sFile, ".\\debugtest.txt");
-
-    ifstream Data(sFile);
-
-    while (iTest == 0)
+    for (int x = 0; x < 16; x++)
     {
-        Data >> sData;
-        iTest = MakeNumber (sData);
-        cout << sData << endl;
+        SetConsoleTextAttribute(hConsole, x);
+        cout << "This is just a test.\n";
     }
-
-//    system ("del debugtest.txt /q");
-
-    DebugCreateNew();
-
-    bRetVal = false;
-
+    SetConsoleTextAttribute(hConsole, 15);
 
     return bRetVal;
 }
@@ -1585,29 +1632,31 @@ void LoadBestMaps ()
             temp2 = maplist;
 
             while (    temp2->next
-                    && (    (temp->map > temp2->next->map)
-                         || (    (temp->map == temp2->next->map)
-                              && (temp->beacontype > temp2->next->beacontype)
-                            )
-                       )
+                    && (temp->mapID > temp2->next->mapID)
                   )
             {
                 temp2 = temp2->next;
             }
 
-            if (    !temp2
-                 || (temp->map != temp2->next->map)
-                 || (temp->beacontype != temp2->next->beacontype)
+            if (    !temp2->next
+                 || (temp->mapID < temp2->next->mapID)
                )
             {
                 temp->next = temp2->next;
                 temp2->next = temp;
             }
-            else
+            else /* duplicate entry found. Keep the highest score. */
             {
-                temp->next = temp2->next->next;
-                free (temp2->next);
-                temp2->next = temp;
+                if (temp->score > temp2->next->score)
+                {
+                    temp->next = temp2->next->next;
+                    free (temp2->next);
+                    temp2->next = temp;
+                }
+                else
+                {
+                    free (temp);
+                }
             }
         }
     }
@@ -1619,6 +1668,8 @@ void SaveBestMaps ()
     bestmaps *temp = maplist, *temp2 = 0;
     char sData[360] = {0},
          sFile[80];
+
+    system ("del bestmaps.txt /q");
 
     sprintf (sFile, ".\\bestmaps.txt");
 
@@ -1665,6 +1716,9 @@ void SetWhichToCheck (int maps, int options)
     bool bRetVal = false;
     int iVal = 0, x = 0, y = 0;
 
+    memset (bestmap, 0, iTotalArea * sizeof (int) );
+    iBestVal = 0;
+
     sprintf (sFile, ".\\tutorial.txt");
 
     if (maps == 2)
@@ -1705,6 +1759,7 @@ void SetWhichToCheck (int maps, int options)
         }
         Data >> sData;
     }
+    Data.close();
 
     for (x = 0; x < (MAX_ROW * MAX_COL); x++)
     {
@@ -1854,3 +1909,176 @@ bool NewBestMap (int map, int beacontype, int beacons)
     return bRetVal;
 }
 
+void RandomizeParameters (int *map, int *beacons, int *beacontype)
+{
+    static int iFCMinOrig = forcecountmin;
+    static int iFCMaxOrig = forcecountmax;
+
+    if (iRunMode == 1)
+    {
+        *map = (rand() % (4) ) + 1; /* min 1, max 4 */
+        *beacons = rand() % 5; /* min 0, max 4 */
+        *beacontype = rand() % 3; /* min 0, max 2 */
+    }
+
+    if (iRunMode == 2)
+    {
+        *beacons += 1;
+
+        if (*beacons > 4)
+        {
+            *beacons = 0;
+            *beacontype += 1;
+
+            if (*beacontype > 2) /* Need to update once speed/prod combo is implemented! */
+            {
+                *beacontype = 0;
+                *map += 1;
+
+                if (*map > 4)
+                {
+                    *map = 1;
+                }
+            }
+        }
+    }
+
+    if ( (iRunMode == 1) || (iRunMode == 2) )
+    {
+        forcetype = rand() % (*beacons + 1); /* min 0, max whatever beacons is */
+        forcecountmin = rand() % 21; /* min 0, max 20 */
+        forcecountmax = forcecountmin + rand() % (41 - forcecountmin);
+    }
+
+    if (iRunMode == 3)
+    {
+        forcecountmin++;
+
+        if (forcecountmin > iFCMaxOrig)
+        {
+            forcecountmin = iFCMinOrig;
+
+            forcetype++;
+
+            if (forcetype > *beacons)
+            {
+                forcetype = 0;
+
+                *beacons += 1;
+
+                if (*beacons > 4)
+                {
+                    *beacons = 0;
+                    *beacontype += 1;
+
+                    if (*beacontype > 2) /* Need to update once speed/prod combo is implemented! */
+                    {
+                        *beacontype = 0;
+                        *map += 1;
+
+                        if (*map > 4)
+                        {
+                            *map = 1;
+                        }
+                    }
+                }
+            }
+        }
+        forcecountmax = forcecountmin;
+
+        cout << "Forcing " << forcecountmin;
+        switch (forcetype)
+        {
+            case 0:
+            {
+                cout << " box beacons.";
+                break;
+            }
+            case 1:
+            {
+                cout << " knight beacons.";
+                break;
+            }
+            case 2:
+            {
+                cout << " arrow beacons.";
+                break;
+            }
+            case 3:
+            {
+                cout << " wall beacons.";
+                break;
+            }
+            case 4:
+            {
+                cout << " donut beacons.";
+                break;
+            }
+            default:
+            {
+                cout << " unknown beacons.";
+                break;
+            }
+        }
+        cout << " map=" << *map << ", bt=" << *beacontype << ", bs=" << *beacons << endl;
+    }
+}
+
+void DisplayMaps (int maps, int beacons, int beacontype)
+{
+    bestmaps    *templist   = 0;
+    bool        bAllMaps    = false,
+                bAllTypes   = false,
+                bAllShapes  = false;
+
+    LoadBestMaps ();
+    templist = maplist;
+
+    if (    (iRunMode == 5)
+         || (iRunMode == 8)
+         || (iRunMode == 9)
+         || (iRunMode == 11)
+       )
+    {
+        bAllMaps = true;
+    }
+
+    if (    (iRunMode == 6)
+         || (iRunMode == 8)
+         || (iRunMode == 10)
+         || (iRunMode == 11)
+       )
+    {
+        bAllTypes = true;
+    }
+
+    if (    (iRunMode == 7)
+         || (iRunMode == 9)
+         || (iRunMode == 10)
+         || (iRunMode == 11)
+       )
+    {
+        bAllShapes = true;
+    }
+
+    while (templist)
+    {
+        if (    (    bAllMaps
+                  || (templist->mapnum == maps)
+                )
+             && (    bAllTypes
+                  || (templist->beacontype == beacontype)
+                )
+             && (    bAllShapes
+                  || (templist->maxbeacon == beacons)
+                )
+           )
+        {
+            mapfinalvalue = templist->score;
+            memcpy (workmap, templist->map, iTotalArea * sizeof (int) );
+            DisplayResults (templist->mapnum, 1, templist->maxbeacon, templist->beacontype);
+        }
+        templist = templist->next;
+    }
+    Cleanup();
+}
