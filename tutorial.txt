@@ -16,3 +16,8 @@
 00000001110000000000
 00000000000000000000
 
+
+Map is 17 rows x 20 columns.
+0 = unusable square
+1 = open square
+2 = blocked square that can be used once purchased.
