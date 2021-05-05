@@ -2,6 +2,7 @@
 #include <string.h>
 #include "Accessories.h"
 
+extern int iRunMode;
 
 int BeaconDisp2Num (char c)
 {
@@ -62,6 +63,51 @@ int BeaconDisp2Num (char c)
         case 'O':
         {
             iData = 9;
+            break;
+        }
+        case '1':
+        {
+            iData = 11;
+            break;
+        }
+        case '2':
+        {
+            iData = 12;
+            break;
+        }
+        case '3':
+        {
+            iData = 13;
+            break;
+        }
+        case '4':
+        {
+            iData = 14;
+            break;
+        }
+        case '5':
+        {
+            iData = 15;
+            break;
+        }
+        case '6':
+        {
+            iData = 16;
+            break;
+        }
+        case '7':
+        {
+            iData = 17;
+            break;
+        }
+        case '8':
+        {
+            iData = 18;
+            break;
+        }
+        case '9':
+        {
+            iData = 19;
             break;
         }
         default:
@@ -136,7 +182,14 @@ char BeaconNum2Disp (int i)
         }
         default:
         {
-            c = 'X';
+            if ( (i > 10) && (i < 20) )
+            {
+                c = 38 + i;
+            }
+            else
+            {
+                c = 'X';
+            }
             break;
         }
     }
@@ -165,5 +218,22 @@ int MakeNumber (char *sData)
     iRetVal /= 10;
 
     return iRetVal;
+}
+
+bool DebugTestGrounds (bool *bTest)
+{
+    bool bRetVal = true;
+
+    iRunMode = 11;
+/*    for (int x = 0; x < 16; x++)
+    {
+        SetConsoleTextAttribute(hConsole, x);
+        cout << "This is just a test.\n";
+    }
+    SetConsoleTextAttribute(hConsole, 15);
+*/
+    *bTest = true;
+
+    return bRetVal;
 }
 
