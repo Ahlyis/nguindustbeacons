@@ -43,6 +43,7 @@ int beaconcolor = 15;
 bestmaps *maplist = 0;
 int iTotalMaps = 0;
 int iRunMode;
+bool bCheckAltBeacon = false;
 
 void WriteOneMap (ofstream& Data, int mapnum, int beacontype, int score, int map[MAX_ROW][MAX_COL], int beacons);
 
@@ -91,22 +92,25 @@ int main(int argc, char* argv[])
         do
         {
             SetWhichToCheck (maps, options);
-            beaconcolor = 11;
+            beaconcolor = SPEED_COLOR;
 
             if (beacontype == 1)
-                beaconcolor = 5;
+                beaconcolor = PROD_COLOR;
             else if (beacontype == 2)
-                beaconcolor = 14;
+                beaconcolor = EFF_COLOR;
 
-            for (i = 0; i < iTries; i++)
+            if (beacontype == 3)
             {
-                if (beacontype != 3)
-                {
-                    CalculateBestBeacons (options, beacons, beacontype);
-                }
-                else
+                for (i = 0; i < (iTries / 1000); i++)
                 {
                     CalculateMixedBeacons (options, beacons, beacontype);
+                }
+            }
+            else
+            {
+                for (i = 0; i < iTries; i++)
+                {
+                    CalculateBestBeacons (options, beacons, beacontype);
                 }
             }
 
@@ -154,7 +158,7 @@ int main(int argc, char* argv[])
 
 void LoadOperatingMode (int *maps, int *options, int *beacons, int *beacontype)
 {
-    char sData[360] = {0},
+    char sData[360] = { 0 },
          sFile[80];
     bool bFromFile = false;
     unsigned int iSeed = 0;
@@ -163,12 +167,53 @@ void LoadOperatingMode (int *maps, int *options, int *beacons, int *beacontype)
 
     ifstream Data(sFile);
 
+    bDebug = false;
+    iRunMode = -1;
     Data >> sData;
-    *maps = MakeNumber (sData);
 
-    if ( (*maps > 0) && (*maps <= MAX_MAPS) )
+    if (sData[0] != 0)
+    {
+        iRunMode = MakeNumber (sData);
+    }
+
+    if (    (iRunMode != 99)
+         && (    (iRunMode < 0)
+              || (iRunMode > 11)
+            )
+       )
+    {
+        printf ("What runmode? (Enter 0 or review runmode.txt for other valid values.\n");
+        cin >> iRunMode;
+    }
+    else
     {
         bFromFile = true;
+    }
+
+    if (iRunMode == 99)
+    {
+        bDebug = true;
+    }
+
+    if ( (iRunMode < 1) || (iRunMode > 11) )
+    {
+        iRunMode = 0; /* Will be updated elsewhere for debug mode. Don't change here. */
+    }
+
+    if (bFromFile)
+    {
+        Data >> sData;
+        *maps = MakeNumber (sData);
+    }
+    else
+    {
+        printf ("Which map? 1=Tutorial, 2=Flesh, 3=Tronne, 4=Candyland\n");
+        cin >> *maps;
+    }
+
+    if ( (*maps < 1) || (*maps >= MAX_MAPS) )
+    {
+        *maps = 1;
     }
 
     if (bFromFile)
@@ -179,14 +224,6 @@ void LoadOperatingMode (int *maps, int *options, int *beacons, int *beacontype)
     }
     else
     {
-        printf ("Which map? 1=Tutorial, 2=Flesh, 3=Tronne, 4=Candyland\n");
-        cin >> *maps;
-
-        if ( (*maps < 2) || (*maps > MAX_MAPS) )
-        {
-            *maps = 1;
-        }
-
         printf ("Include currently blockaded? 1=yes\n");
         cin >> *options;
     }
@@ -323,30 +360,6 @@ void LoadOperatingMode (int *maps, int *options, int *beacons, int *beacontype)
 
     if (iTries < 1)
         iTries = 1;
-
-    bDebug = false;
-    iRunMode = 0;
-
-    if (bFromFile)
-    {
-        Data >> sData;
-        iRunMode = MakeNumber (sData);
-    }
-    else
-    {
-        printf ("What runmode? (Enter 0 or review runmode.txt for other valid values.\n");
-        cin >> iRunMode;
-    }
-
-    if (iRunMode == 99)
-    {
-        bDebug = true;
-    }
-
-    if ( (iRunMode < 1) || (iRunMode > 11) )
-    {
-        iRunMode = 0; /* Will be updated elsewhere for debug mode. Don't change here. */
-    }
 
     return;
 }
@@ -759,20 +772,30 @@ int  DisplayResults (int maps, int options, int beacons, int beacontype)
     {
         case 0:
         {
-            SetConsoleTextAttribute(hConsole, 11);
+            SetConsoleTextAttribute(hConsole, SPEED_COLOR);
             cout << "speed";
             break;
         }
         case 1:
         {
-            SetConsoleTextAttribute(hConsole, 5);
+            SetConsoleTextAttribute(hConsole, PROD_COLOR);
             cout << "production";
             break;
         }
         case 2:
         {
-            SetConsoleTextAttribute(hConsole, 14);
+            SetConsoleTextAttribute(hConsole, EFF_COLOR);
             cout << "efficiency";
+            break;
+        }
+        case 3:
+        {
+            SetConsoleTextAttribute(hConsole, SPEED_COLOR);
+            cout << "speed";
+            SetConsoleTextAttribute(hConsole, 15);
+            cout << " and ";
+            SetConsoleTextAttribute(hConsole, PROD_COLOR);
+            cout << "production";
             break;
         }
         default:
@@ -799,7 +822,18 @@ int  DisplayResults (int maps, int options, int beacons, int beacontype)
     {
         for (y = 0; y < MAX_COL; y++)
         {
-            switch (workmap[x][y])
+            if (beacontype == 3)
+            {
+                beaconcolor = SPEED_COLOR;
+
+                if (workmap[x][y] > 10)
+                {
+                    beaconcolor = PROD_COLOR;
+                    workmap[x][y] -= 10;
+                }
+            }
+
+            switch (workmap[x][y] % 10)
             {
                 case -1:
                 {
@@ -881,6 +915,13 @@ int  DisplayResults (int maps, int options, int beacons, int beacontype)
                     break;
                 }
             }
+
+            if (    (beacontype == 3)
+                 && (beaconcolor == PROD_COLOR)
+               )
+            {
+                workmap[x][y] += 10;
+            }
         }
         SetConsoleTextAttribute(hConsole, 15);
         cout << " \n";
@@ -900,7 +941,7 @@ void CalcSqValues (int *sqhitby, int *sqavail, int x, int y)
 {
     int z;
 
-    for (z = 0; z < MAX_SQ; z++)
+    for (z = 0; z < MAX_BX; z++)
     {
         if (    ( (x + sqx[z]) > MIN_ROW)
              && ( (x + sqx[z]) < MAX_ROW)
@@ -1105,350 +1146,6 @@ void CopyMap (int sourcemap[MAX_ROW][MAX_COL], int destmap[MAX_ROW][MAX_COL])
     }
 }
 
-int  CalculateMixedBeacons (int options, int beacons, int beacontype)
-{
-    short shMap[MAX_ROW * MAX_COL][20] = { 0 };
-    int i, x, y, workx, worky, workval, workbeacon, currval;
-    int sqhitby, sqavail, knhitby, knavail, arlhitby, arlavail;
-    int arrhitby, arravail, aruhitby, aruavail, ardhitby, ardavail;
-    int hwlhitby, hwlavail, vwlhitby, vwlavail, dthitby, dtavail;
-
-    int tempval, currforcecount;
-    bool done = false;
-
-    Shuffle (); /* randomizes the searchorder. */
-    memcpy (workmap, baseworkmap, iTotalArea * sizeof (int) );
-
-    currforcecount = 0;
-
-    if (forcecountmax > 0)
-    {
-        currforcecount = forcecountmin + rand() % (forcecountmax - forcecountmin + 1);
-    }
-
-    while (!done)
-    {
-        workval = workx = worky = workbeacon = 0;
-        tempval = 0;
-        done = true;
-
-        for (i = 0; i < iTotalArea; i++)
-        {
-            x = searchorder[i] / MAX_COL;
-            y = searchorder[i] % MAX_COL;
-            currval = 0;
-
-            if (workmap[x][y] == 0)
-            {
-                sqhitby = sqavail = knhitby = knavail = arlhitby = arlavail = 0;
-                arrhitby = arravail = aruhitby = aruavail = ardhitby = ardavail = 0;
-                hwlhitby = hwlavail = vwlhitby = vwlavail = dthitby = dtavail = 0;
-
-                CalcSqValues (&sqhitby, &sqavail, x, y);
-
-                if (beacons > 0)
-                {
-                    CalcKnValues (&knhitby, &knavail, x, y);
-                }
-
-                if (beacons > 1)
-                {
-                    CalcArValues (&arrhitby, &arravail, &arlhitby, &arlavail,
-                                  &ardhitby, &ardavail, &aruhitby, &aruavail, x, y);
-                }
-
-                if (beacons > 2)
-                {
-                    CalcWlValues (&hwlhitby, &hwlavail, &vwlhitby, &vwlavail, x, y);
-                }
-
-                if (beacons > 3)
-                {
-                    CalcDtValues (&dthitby, &dtavail, x, y);
-                }
-
-                currval -= sqhitby * beaconval[beacontype][0 /*squares*/];
-                currval -= knhitby * beaconval[beacontype][1 /*knights*/];
-                currval -= arrhitby * beaconval[beacontype][2 /*arrows*/];
-                currval -= arlhitby * beaconval[beacontype][2 /*arrows*/];
-                currval -= ardhitby * beaconval[beacontype][2 /*arrows*/];
-                currval -= aruhitby * beaconval[beacontype][2 /*arrows*/];
-                currval -= hwlhitby * beaconval[beacontype][3 /*walls*/];
-                currval -= vwlhitby * beaconval[beacontype][3 /*walls*/];
-                currval -= dthitby * beaconval[beacontype][4 /*donuts*/];
-
-                if (    (currforcecount <= 0)
-                     || (forcetype == 0)
-                   )
-                {
-                    tempval = currval + sqavail * beaconval[beacontype][0 /*squares*/];
-
-                    if (    (    (tempval > 100)
-                              || (    (tempval > 40)
-                                   && (beacontype == 2)
-                                 )
-                            )
-                         && (tempval > workval)
-                       )
-                    {
-                        workx = x;
-                        worky = y;
-                        workval = tempval;
-                        workbeacon = 1; /*squares*/
-                    }
-                }
-
-                if (    (currforcecount <= 0)
-                     || (forcetype == 1)
-                   )
-                {
-                    tempval = currval + knavail * beaconval[beacontype][1 /*knights*/];
-
-                    if (    (    (tempval > 100)
-                              || (    (tempval > 40)
-                                   && (beacontype == 2)
-                                 )
-                            )
-                         && (tempval > workval)
-                       )
-                    {
-                        workx = x;
-                        worky = y;
-                        workval = tempval;
-                        workbeacon = 2; /*knights*/
-                    }
-                }
-
-                if (    (currforcecount <= 0)
-                     || (forcetype == 2)
-                   )
-                {
-                    tempval = currval + arravail * beaconval[beacontype][2 /*arrows*/];
-
-                    if (    (    (tempval > 100)
-                              || (    (tempval > 40)
-                                   && (beacontype == 2)
-                                 )
-                            )
-                         && (tempval > workval)
-                       )
-                    {
-                        workx = x;
-                        worky = y;
-                        workval = tempval;
-                        workbeacon = 3; /*arrow right*/
-                    }
-                }
-
-                if (    (currforcecount <= 0)
-                     || (forcetype == 2)
-                   )
-                {
-                    tempval = currval + arlavail * beaconval[beacontype][2 /*arrows*/];
-
-                    if (    (    (tempval > 100)
-                              || (    (tempval > 40)
-                                   && (beacontype == 2)
-                                 )
-                            )
-                         && (tempval > workval)
-                       )
-                    {
-                        workx = x;
-                        worky = y;
-                        workval = tempval;
-                        workbeacon = 4; /*arrow left*/
-                    }
-                }
-
-                if (    (currforcecount <= 0)
-                     || (forcetype == 2)
-                   )
-                {
-                    tempval = currval + ardavail * beaconval[beacontype][2 /*arrows*/];
-
-                    if (    (    (tempval > 100)
-                              || (    (tempval > 40)
-                                   && (beacontype == 2)
-                                 )
-                            )
-                         && (tempval > workval)
-                       )
-                    {
-                        workx = x;
-                        worky = y;
-                        workval = tempval;
-                        workbeacon = 5; /*arrow down*/
-                    }
-                }
-
-                if (    (currforcecount <= 0)
-                     || (forcetype == 2)
-                   )
-                {
-                    tempval = currval + aruavail * beaconval[beacontype][2 /*arrows*/];
-
-                    if (    (    (tempval > 100)
-                              || (    (tempval > 40)
-                                   && (beacontype == 2)
-                                 )
-                            )
-                         && (tempval > workval)
-                       )
-                    {
-                        workx = x;
-                        worky = y;
-                        workval = tempval;
-                        workbeacon = 6; /*arrow up*/
-                    }
-                }
-
-                if (    (currforcecount <= 0)
-                     || (forcetype == 3)
-                   )
-                {
-                    tempval = currval + hwlavail * beaconval[beacontype][3 /*walls*/];
-
-                    if (    (    (tempval > 100)
-                              || (    (tempval > 40)
-                                   && (beacontype == 2)
-                                 )
-                            )
-                         && (tempval > workval)
-                       )
-                    {
-                        workx = x;
-                        worky = y;
-                        workval = tempval;
-                        workbeacon = 7; /*horizontal wall*/
-                    }
-                }
-
-                if (    (currforcecount <= 0)
-                     || (forcetype == 3)
-                   )
-                {
-                    tempval = currval + vwlavail * beaconval[beacontype][3 /*walls*/];
-
-                    if (    (    (tempval > 100)
-                              || (    (tempval > 40)
-                                   && (beacontype == 2)
-                                 )
-                            )
-                         && (tempval > workval)
-                       )
-                    {
-                        workx = x;
-                        worky = y;
-                        workval = tempval;
-                        workbeacon = 8; /*vertical wall*/
-                    }
-                }
-
-                if (    (currforcecount <= 0)
-                     || (forcetype == 4)
-                   )
-                {
-                    tempval = currval + dtavail * beaconval[beacontype][4 /*donuts*/];
-
-                    if (    (    (tempval > 100)
-                              || (    (tempval > 40)
-                                   && (beacontype == 2)
-                                 )
-                            )
-                         && (tempval > workval)
-                       )
-                    {
-                        workx = x;
-                        worky = y;
-                        workval = tempval;
-                        workbeacon = 9; /*donut*/
-                    }
-                }
-            }
-        }
-
-        if (workval > 0)
-        {
-            done = false;
-
-            if (    (workmap[workx][worky] != 0)
-                 || (workbeacon == 0)
-               )
-            {
-                printf ("ERROR! Bad logic!!!\n");
-            }
-            workmap[workx][worky] = workbeacon;
-            currforcecount--;
-        }
-    }
-    mapbasevalue = 0;
-    mapfinalvalue = 0;
-
-    for (x = 0; x < MAX_ROW; x++)
-    {
-        for (y = 0; y < MAX_COL; y++)
-        {
-            currval = 100; /* current square is worth 100 base before adding beacon modifiers */
-
-            if (workmap[x][y] >= 0)
-            {
-                mapbasevalue += currval;
-            }
-
-            if (workmap[x][y] == 0) /* 0=empty square, usable and without a beacon on it. */
-            {
-                sqhitby = sqavail = knhitby = knavail = arlhitby = arlavail = 0;
-                arrhitby = arravail = aruhitby = aruavail = ardhitby = ardavail = 0;
-                hwlhitby = hwlavail = vwlhitby = vwlavail = dthitby = dtavail = 0;
-
-                CalcSqValues (&sqhitby, &sqavail, x, y);
-                CalcKnValues (&knhitby, &knavail, x, y);
-                CalcArValues (&arrhitby, &arravail, &arlhitby, &arlavail,
-                              &ardhitby, &ardavail, &aruhitby, &aruavail, x, y);
-                CalcWlValues (&hwlhitby, &hwlavail, &vwlhitby, &vwlavail, x, y);
-                CalcDtValues (&dthitby, &dtavail, x, y);
-
-                currval += sqhitby * beaconval[beacontype][0 /*squares*/];
-                currval += knhitby * beaconval[beacontype][1 /*knights*/];
-                currval += arrhitby * beaconval[beacontype][2 /*arrows*/];
-                currval += arlhitby * beaconval[beacontype][2 /*arrows*/];
-                currval += ardhitby * beaconval[beacontype][2 /*arrows*/];
-                currval += aruhitby * beaconval[beacontype][2 /*arrows*/];
-                currval += hwlhitby * beaconval[beacontype][3 /*walls*/];
-                currval += vwlhitby * beaconval[beacontype][3 /*walls*/];
-                currval += dthitby * beaconval[beacontype][4 /*donuts*/];
-
-                mapfinalvalue += currval;
-            }
-        }
-    }
-
-    if (mapfinalvalue > iBestVal)
-    {
-        iBestVal = mapfinalvalue;
-        CopyMap (workmap, bestmap);
-    }
-    return 0;
-}
-
-
-bool DebugTestGrounds (bool *bTest)
-{
-    bool bRetVal = true;
-
-    *bTest = true;
-
-    for (int x = 0; x < 16; x++)
-    {
-        SetConsoleTextAttribute(hConsole, x);
-        cout << "This is just a test.\n";
-    }
-    SetConsoleTextAttribute(hConsole, 15);
-
-    return bRetVal;
-}
-
 void WriteOneMap (ofstream& Data, int mapnum, int beacontype, int score, int map[MAX_ROW][MAX_COL], int beacons)
 {
     int x, y;
@@ -1570,7 +1267,14 @@ void LoadBestMaps ()
          sFile[80];
     int i, x, y, iData;
 
-    sprintf (sFile, ".\\bestmaps.txt");
+    if (!bDebug)
+    {
+        sprintf (sFile, ".\\bestmaps.txt");
+    }
+    else
+    {
+        sprintf (sFile, ".\\dbugmaps.txt");
+    }
 
     ifstream Data(sFile);
 
@@ -1918,7 +1622,7 @@ void RandomizeParameters (int *map, int *beacons, int *beacontype)
     {
         *map = (rand() % (4) ) + 1; /* min 1, max 4 */
         *beacons = rand() % 5; /* min 0, max 4 */
-        *beacontype = rand() % 3; /* min 0, max 2 */
+        *beacontype = rand() % 4; /* min 0, max 3 */
     }
 
     if (iRunMode == 2)
@@ -1930,7 +1634,7 @@ void RandomizeParameters (int *map, int *beacons, int *beacontype)
             *beacons = 0;
             *beacontype += 1;
 
-            if (*beacontype > 2) /* Need to update once speed/prod combo is implemented! */
+            if (*beacontype > 3)
             {
                 *beacontype = 0;
                 *map += 1;
@@ -1971,7 +1675,7 @@ void RandomizeParameters (int *map, int *beacons, int *beacontype)
                     *beacons = 0;
                     *beacontype += 1;
 
-                    if (*beacontype > 2) /* Need to update once speed/prod combo is implemented! */
+                    if (*beacontype > 3)
                     {
                         *beacontype = 0;
                         *map += 1;
@@ -2074,11 +1778,361 @@ void DisplayMaps (int maps, int beacons, int beacontype)
                 )
            )
         {
-            mapfinalvalue = templist->score;
             memcpy (workmap, templist->map, iTotalArea * sizeof (int) );
+            if (bDebug)
+            {
+                templist->score = CalcMapScore (beacontype);
+            }
+            mapfinalvalue = templist->score;
             DisplayResults (templist->mapnum, 1, templist->maxbeacon, templist->beacontype);
         }
         templist = templist->next;
     }
     Cleanup();
+}
+
+int  CalculateMixedBeacons (int options, int beacons, int beacontype)
+{
+    int i, i2, x, y;
+    int workx, worky, workval, workbeacon;
+    int baseval = 0;
+
+    int currforcecount;
+    int tempval, workvalold;
+    bool done = false;
+
+    Shuffle (); /* randomizes the searchorder. */
+    memcpy (workmap, baseworkmap, iTotalArea * sizeof (int) );
+
+    currforcecount = 0;
+
+    if (forcecountmax > 0)
+    {
+        currforcecount = forcecountmin + rand() % (forcecountmax - forcecountmin + 1);
+    }
+
+    for (x = 0; x < MAX_ROW; x++)
+    {
+        for (y = 0; y < MAX_COL; y++)
+        {
+            if (workmap[x][y] == 0)
+            {
+                baseval += 100;
+            }
+        }
+    }
+    workvalold = baseval;
+
+    while (!done)
+    {
+        workx = worky = workbeacon = 0;
+        workval = workvalold;
+        tempval = 0;
+        done = true;
+
+        for (i = 0; i < iTotalArea; i++)
+        {
+            x = searchorder[i] / MAX_COL;
+            y = searchorder[i] % MAX_COL;
+
+            if (workmap[x][y] == 0)
+            {
+                for (i2 = 1; beaconxref[i2] <= beacons; i2++)
+                {
+                    if (    (currforcecount <= 0)
+                         || (forcetype == beaconxref[i2])
+                       )
+                    {
+                        workmap[x][y] = i2;
+                        tempval = CalcMapScore (beacontype);
+
+                        if (tempval > workval)
+                        {
+                            workx = x;
+                            worky = y;
+                            workval = tempval;
+                            workbeacon = i2;
+                        }
+
+                        workmap[x][y] += 10;
+                        tempval = CalcMapScore (beacontype);
+
+                        if (tempval > workval)
+                        {
+                            workx = x;
+                            worky = y;
+                            workval = tempval;
+                            workbeacon = i2 + 10;
+                        }
+                        workmap[x][y] = 0;
+                    }
+                }
+            }
+        }
+
+        if (workval > workvalold)
+        {
+            done = false;
+
+            if (    (workmap[workx][worky] != 0)
+                 || (workbeacon == 0)
+               )
+            {
+                printf ("ERROR! Bad logic!!!\n");
+            }
+            workmap[workx][worky] = workbeacon;
+            currforcecount--;
+            workvalold = workval;
+        }
+    }
+    mapbasevalue = baseval;
+    mapfinalvalue = workvalold;
+
+    if (mapfinalvalue > iBestVal)
+    {
+        iBestVal = mapfinalvalue;
+        CopyMap (workmap, bestmap);
+    }
+    return 0;
+}
+
+int CalcMapScore (int beacontype)
+{
+    int iScore, iBeacon, iBeaconVal;
+    int x, y, z, iOffset, iType2;
+    int iSpd[MAX_ROW][MAX_COL] = { 0 };
+    int iPrd[MAX_ROW][MAX_COL] = { 0 };
+    int iEff[MAX_ROW][MAX_COL] = { 0 };
+
+    for (x = 0; x < MAX_ROW; x++)
+    {
+        for (y = 0; y < MAX_COL; y++)
+        {
+            iBeacon = workmap[x][y];
+
+            if (iBeacon > 0)
+            {
+                if (iBeacon > 10)
+                {
+                    iBeaconVal = beaconval[1][beaconxref[iBeacon - 10]];
+                    iType2 = 1;
+                    iBeacon -= 10;
+                }
+                else
+                {
+                    if (beacontype == 3)
+                    {
+                        iBeaconVal = beaconval[0][beaconxref[iBeacon]];
+                        iType2 = 0;
+                    }
+                    else
+                    {
+                        iBeaconVal = beaconval[beacontype][beaconxref[iBeacon]];
+                        iType2 = beacontype;
+                    }
+                }
+                iOffset = 60;
+
+                switch (iBeacon)
+                {
+                    case 1:
+                    {
+                        for (z = 0; z < MAX_BX; z++)
+                        {
+                            if (    ( (x + sqx[z]) > MIN_ROW)
+                                 && ( (x + sqx[z]) < MAX_ROW)
+                                 && ( (y + sqy[z]) > MIN_COL)
+                                 && ( (y + sqy[z]) < MAX_COL)
+                               )
+                            {
+                                if (workmap[x + sqx[z]][y + sqy[z]] == 0)
+                                {
+                                    if (iType2 == 0)
+                                    {
+                                        iSpd[x + sqx[z]][y + sqy[z]] += iBeaconVal;
+                                    }
+                                    else if (iType2 == 1)
+                                    {
+                                        iPrd[x + sqx[z]][y + sqy[z]] += iBeaconVal;
+                                    }
+                                    else /* (iType2 == 2) */
+                                    {
+                                        iEff[x + sqx[z]][y + sqy[z]] += iBeaconVal;
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                    }
+                    case 2:
+                    {
+                        for (z = 0; z < MAX_KN; z++)
+                        {
+                            if (    ( (x + knx[z]) > MIN_ROW)
+                                 && ( (x + knx[z]) < MAX_ROW)
+                                 && ( (y + kny[z]) > MIN_COL)
+                                 && ( (y + kny[z]) < MAX_COL)
+                               )
+                            {
+                                if (workmap[x + knx[z]][y + kny[z]] == 0)
+                                {
+                                    if (iType2 == 0)
+                                    {
+                                        iSpd[x + knx[z]][y + kny[z]] += iBeaconVal;
+                                    }
+                                    else if (iType2 == 1)
+                                    {
+                                        iPrd[x + knx[z]][y + kny[z]] += iBeaconVal;
+                                    }
+                                    else /* (iType2 == 2) */
+                                    {
+                                        iEff[x + knx[z]][y + kny[z]] += iBeaconVal;
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                    }
+                    case 3:
+                        iOffset -= 20;
+                    case 4:
+                        iOffset -= 20;
+                    case 5:
+                        iOffset -= 20;
+                    case 6:
+                    {
+                        for (z = 0; z < MAX_AR; z++)
+                        {
+                            if (    ( (x + arx[z + iOffset]) > MIN_ROW)
+                                 && ( (x + arx[z + iOffset]) < MAX_ROW)
+                                 && ( (y + ary[z + iOffset]) > MIN_COL)
+                                 && ( (y + ary[z + iOffset]) < MAX_COL)
+                               )
+                            {
+                                if (workmap[x + arx[z + iOffset]][y + ary[z + iOffset]] == 0)
+                                {
+                                    if (iType2 == 0)
+                                    {
+                                        iSpd[x + arx[z + iOffset]][y + ary[z + iOffset]] += iBeaconVal;
+                                    }
+                                    else if (iType2 == 1)
+                                    {
+                                        iPrd[x + arx[z + iOffset]][y + ary[z + iOffset]] += iBeaconVal;
+                                    }
+                                    else /* (iType2 == 2) */
+                                    {
+                                        iEff[x + arx[z + iOffset]][y + ary[z + iOffset]] += iBeaconVal;
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                    }
+                    case 7:
+                    {
+                        for (z = 0; z < MAX_WALL; z++)
+                        {
+                            if (    ( (y + wlb[z]) > MIN_COL)
+                                 && ( (y + wlb[z]) < MAX_COL)
+                               )
+                            {
+                                if (workmap[x][y + wlb[z]] == 0)
+                                {
+                                    if (iType2 == 0)
+                                    {
+                                        iSpd[x][y + wlb[z]] += iBeaconVal;
+                                    }
+                                    else if (iType2 == 1)
+                                    {
+                                        iPrd[x][y + wlb[z]] += iBeaconVal;
+                                    }
+                                    else /* (iType2 == 2) */
+                                    {
+                                        iEff[x][y + wlb[z]] += iBeaconVal;
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                    }
+                    case 8:
+                    {
+                        for (z = 0; z < MAX_WALL; z++)
+                        {
+                            if (    ( (x + wlb[z]) > MIN_ROW)
+                                 && ( (x + wlb[z]) < MAX_ROW)
+                               )
+                            {
+                                if (workmap[x + wlb[z]][y] == 0)
+                                {
+                                    if (iType2 == 0)
+                                    {
+                                        iSpd[x + wlb[z]][y] += iBeaconVal;
+                                    }
+                                    else if (iType2 == 1)
+                                    {
+                                        iPrd[x + wlb[z]][y] += iBeaconVal;
+                                    }
+                                    else /* (iType2 == 2) */
+                                    {
+                                        iEff[x + wlb[z]][y] += iBeaconVal;
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                    }
+                    case 9:
+                    {
+                        for (z = 0; z < MAX_DONUT; z++)
+                        {
+                            if (    ( (x + dtx[z]) > MIN_ROW)
+                                 && ( (x + dtx[z]) < MAX_ROW)
+                                 && ( (y + dty[z]) > MIN_COL)
+                                 && ( (y + dty[z]) < MAX_COL)
+                               )
+                            {
+                                if (workmap[x + dtx[z]][y + dty[z]] == 0)
+                                {
+                                    if (iType2 == 0)
+                                    {
+                                        iSpd[x + dtx[z]][y + dty[z]] += iBeaconVal;
+                                    }
+                                    else if (iType2 == 1)
+                                    {
+                                        iPrd[x + dtx[z]][y + dty[z]] += iBeaconVal;
+                                    }
+                                    else /* (iType2 == 2) */
+                                    {
+                                        iEff[x + dtx[z]][y + dty[z]] += iBeaconVal;
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    iScore = 0;
+
+    for (x = 0; x < MAX_ROW; x++)
+    {
+        for (y = 0; y < MAX_COL; y++)
+        {
+            if (workmap[x][y] == 0)
+            {
+                iScore += (int) (100 
+                                 * (1 + (iSpd[x][y] / 100.0) )
+                                 * (1 + (iPrd[x][y] / 100.0) )
+                                 * (1 + (iEff[x][y] / 100.0) ) );
+                iType2 = (int) (100 
+                                 * (1 + (iSpd[x][y] / 100.0) )
+                                 * (1 + (iPrd[x][y] / 100.0) )
+                                 * (1 + (iEff[x][y] / 100.0) ) );
+            }
+        }
+    }
+    return iScore;
 }
