@@ -3,15 +3,14 @@
 #define MAX_ROW 17
 #define MAX_COL 20
 #define MAX_MAPS 4
-#define MAX_SQ 8
+#define MAX_BX 8
 #define MAX_KN 8
 #define MAX_AR 11
-#define AR_RIGHT 0
-#define AR_LEFT 20
-#define AR_DOWN 40
-#define AR_UP 60
 #define MAX_WALL 12
 #define MAX_DONUT 16
+#define SPEED_COLOR 11
+#define PROD_COLOR 5
+#define EFF_COLOR 14
 
 typedef struct bestmaps
 {
@@ -48,4 +47,4 @@ void Cleanup ();
 bool NewBestMap (int map, int beacontype, int beacons);
 void RandomizeParameters (int *map, int *beacons, int *beacontype);
 void DisplayMaps (int maps, int beacons, int beacontype);
-
+int  CalcMapScore (int beacontype);
