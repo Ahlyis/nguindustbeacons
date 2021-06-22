@@ -1,6 +1,6 @@
-2-run_mode
-1-map_number
-1-include_blocked_squares(1=true)
+1-run_mode
+5-map_number
+0-include_blocked_squares(1=true)
 0-beacon_type
 0-max_beacon_shape
 0-shape_to_force
@@ -8,7 +8,7 @@
 25-amount_to_force_max
 1-no_legend
 0-random_seed(0=true_random)
-1000-number_of_attempts
+100-number_of_attempts
 
 Use this file to set the mode of operation for the program.
 Each line at the top should start with a number and not contain any blank spaces.
@@ -42,7 +42,7 @@ Line 1 (run mode):
     does is always changing.
 
 Line 2:
-1) Tutorial   2) Flesh   3) Tronne   4) Candyland
+1) Tutorial   2) Flesh   3) Tronne   4) Candyland   5) M&M
 (Anything else results in manual entry of parameters.)
 
 Line 3:
