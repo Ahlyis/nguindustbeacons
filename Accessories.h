@@ -2,7 +2,7 @@
 #define MIN_COL -1
 #define MAX_ROW 17
 #define MAX_COL 20
-#define MAX_MAPS 4
+#define MAX_MAPS 5
 #define MAX_BX 8
 #define MAX_KN 8
 #define MAX_AR 11

@@ -44,6 +44,7 @@ bestmaps *maplist = 0;
 int iTotalMaps = 0;
 int iRunMode;
 bool bCheckAltBeacon = false;
+int mapcolor [10];
 
 void WriteOneMap (ofstream& Data, int mapnum, int beacontype, int score, int map[MAX_ROW][MAX_COL], int beacons);
 
@@ -61,8 +62,23 @@ int main(int argc, char* argv[])
     mapbasevalue = 0;
     mapfinalvalue = 0;
     iBestVal = 0;
+    beaconxref[1] = 0; /* Boxes */
+    beaconxref[2] = 1; /* Knights */
+    beaconxref[3] = 2; /* Arrows */
+    beaconxref[4] = 2; /* Arrows */
+    beaconxref[5] = 2; /* Arrows */
+    beaconxref[6] = 2; /* Arrows */
+    beaconxref[7] = 3; /* Walls */
+    beaconxref[8] = 3; /* Walls */
+    beaconxref[9] = 4; /* Donuts */
 
     LoadOperatingMode (&maps, &options, &beacons, &beacontype);
+    beaconcolor = SPEED_COLOR;
+
+    if (beacontype == 1)
+        beaconcolor = PROD_COLOR;
+    else if (beacontype == 2)
+        beaconcolor = EFF_COLOR;
 
     if (bDebug)
     {
@@ -92,16 +108,10 @@ int main(int argc, char* argv[])
         do
         {
             SetWhichToCheck (maps, options);
-            beaconcolor = SPEED_COLOR;
-
-            if (beacontype == 1)
-                beaconcolor = PROD_COLOR;
-            else if (beacontype == 2)
-                beaconcolor = EFF_COLOR;
 
             if (beacontype == 3)
             {
-                for (i = 0; i < (iTries / 1000); i++)
+                for (i = 0; i < ( ( (iTries - 1) / 1000) + 1); i++)
                 {
                     CalculateMixedBeacons (options, beacons, beacontype);
                 }
@@ -207,11 +217,11 @@ void LoadOperatingMode (int *maps, int *options, int *beacons, int *beacontype)
     }
     else
     {
-        printf ("Which map? 1=Tutorial, 2=Flesh, 3=Tronne, 4=Candyland\n");
+        printf ("Which map? 1=Tutorial, 2=Flesh, 3=Tronne, 4=Candyland, 5=M&M\n");
         cin >> *maps;
     }
 
-    if ( (*maps < 1) || (*maps >= MAX_MAPS) )
+    if ( (*maps < 1) || (*maps > MAX_MAPS) )
     {
         *maps = 1;
     }
@@ -723,6 +733,12 @@ int  DisplayResults (int maps, int options, int beacons, int beacontype)
             cout << "Candyland\n";
             break;
         }
+        case 5:
+        {
+            SetConsoleTextAttribute(hConsole, 15);
+            cout << "M&M\n";
+            break;
+        }
         default:
         {
             cout << "Unknown - " << maps << "\n";
@@ -837,15 +853,7 @@ int  DisplayResults (int maps, int options, int beacons, int beacontype)
             {
                 case -1:
                 {
-                    if (maps == 1)
-                        SetConsoleTextAttribute(hConsole, 24);
-                    else if (maps == 2)
-                        SetConsoleTextAttribute(hConsole, 197);
-                    else if (maps == 3)
-                        SetConsoleTextAttribute(hConsole, 48);
-                    else if (maps == 4)
-                        SetConsoleTextAttribute(hConsole, 222);
-
+                    SetConsoleTextAttribute(hConsole, mapcolor[maps]);
                     cout << "~";
                     break;
                 }
@@ -1174,6 +1182,11 @@ void WriteOneMap (ofstream& Data, int mapnum, int beacontype, int score, int map
             Data << "-Candyland" << endl;
             break;
         }
+        case 5:
+        {
+            Data << "-M&M" << endl;
+            break;
+        }
         default:
         {
             Data << "-unknown_map" << endl;
@@ -1440,6 +1453,11 @@ void SetWhichToCheck (int maps, int options)
         sprintf (sFile, ".\\candyland.txt");
     }
 
+    if (maps == 5)
+    {
+        sprintf (sFile, ".\\mm.txt");
+    }
+
     ifstream Data(sFile);
 
     Data >> sData;
@@ -1501,16 +1519,6 @@ void SetWhichToCheck (int maps, int options)
             }
         }
     } // initialize base working map,
-
-    beaconxref[1] = 0; /* Boxes */
-    beaconxref[2] = 1; /* Knights */
-    beaconxref[3] = 2; /* Arrows */
-    beaconxref[4] = 2; /* Arrows */
-    beaconxref[5] = 2; /* Arrows */
-    beaconxref[6] = 2; /* Arrows */
-    beaconxref[7] = 3; /* Walls */
-    beaconxref[8] = 3; /* Walls */
-    beaconxref[9] = 4; /* Donuts */
 
     return;
 }
@@ -1620,7 +1628,7 @@ void RandomizeParameters (int *map, int *beacons, int *beacontype)
 
     if (iRunMode == 1)
     {
-        *map = (rand() % (4) ) + 1; /* min 1, max 4 */
+        *map = (rand() % (MAX_MAPS) ) + 1; /* min 1, max MAX_MAPS */
         *beacons = rand() % 5; /* min 0, max 4 */
         *beacontype = rand() % 4; /* min 0, max 3 */
     }
@@ -1639,7 +1647,7 @@ void RandomizeParameters (int *map, int *beacons, int *beacontype)
                 *beacontype = 0;
                 *map += 1;
 
-                if (*map > 4)
+                if (*map > MAX_MAPS)
                 {
                     *map = 1;
                 }
@@ -1680,7 +1688,7 @@ void RandomizeParameters (int *map, int *beacons, int *beacontype)
                         *beacontype = 0;
                         *map += 1;
 
-                        if (*map > 4)
+                        if (*map > MAX_MAPS)
                         {
                             *map = 1;
                         }
@@ -1726,6 +1734,12 @@ void RandomizeParameters (int *map, int *beacons, int *beacontype)
         }
         cout << " map=" << *map << ", bt=" << *beacontype << ", bs=" << *beacons << endl;
     }
+    beaconcolor = SPEED_COLOR;
+
+    if (*beacontype == 1)
+        beaconcolor = PROD_COLOR;
+    else if (*beacontype == 2)
+        beaconcolor = EFF_COLOR;
 }
 
 void DisplayMaps (int maps, int beacons, int beacontype)
