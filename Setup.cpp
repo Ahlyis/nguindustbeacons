@@ -15,6 +15,7 @@ extern int dtx[16];
 extern int dty[16];
 
 extern int beaconval[3][5]; /* [affects][shape] */
+extern int mapcolor [10];
 
 void InitBeacons ()
 {
@@ -205,6 +206,12 @@ void InitBeacons ()
     beaconval [2][2] = 7;
     beaconval [2][3] = 9;
     beaconval [2][4] = 8;
+
+    mapcolor[1] = 24;
+    mapcolor[2] = 197;
+    mapcolor[3] = 48;
+    mapcolor[4] = 222;
+    mapcolor[5] = 15;
 
     return;
 }
